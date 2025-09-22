@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "build": "esbuild index.tsx --bundle --outfile=dist/bundle.js --jsx=automatic --platform=browser --target=es2020 --define:process.env.NODE_ENV='\"production\"'"
+    "build": "mkdir -p public && cp index.html public/ && esbuild index.tsx --bundle --outfile=public/bundle.js --jsx=automatic --platform=browser --target=es2020 --define:process.env.NODE_ENV='\"production\"'"
   },
   "dependencies": {
     "@google/genai": "^1.19.0",
