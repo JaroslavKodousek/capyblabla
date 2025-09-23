@@ -7,6 +7,7 @@ import * as geminiService from './services/geminiService';
 import { useSpeechSynthesis } from './hooks/useSpeechSynthesis';
 import CapybaraLogo from './components/CapybaraLogo';
 import ThemeSwitcher from './components/ThemeSwitcher';
+import IconButton from './components/IconButton';
 
 type ChatFlowState = 'CONFIG_PARTNER' | 'CONFIG_LANGUAGE' | 'CONFIG_DIFFICULTY' | 'CONFIG_TOPIC' | 'CHATTING';
 
@@ -70,6 +71,7 @@ const App: React.FC = () => {
     setMessages([]); // Ensure chat is clear
     setIsAiTyping(true);
     cancel(); // Stop any previous speech before starting new one
+    setIsSidebarOpen(false); // Close sidebar on mobile after selection
 
     try {
       const { reply, feedback } = await geminiService.sendMessageToAI(
@@ -122,72 +124,95 @@ const App: React.FC = () => {
     }
   };
 
+  const settingsPanelProps = {
+    selectedLanguage,
+    onLanguageChange: handleLanguageChange,
+    selectedDifficulty,
+    onDifficultyChange: handleDifficultyChange,
+    onConfirmDifficulty: handleConfirmDifficulty,
+    selectedPartner,
+    onPartnerChange: handlePartnerChange,
+    voices: languageVoices,
+    selectedVoice,
+    onVoiceChange: setSelectedVoice,
+    speakingRate,
+    onRateChange: setSpeakingRate,
+    selectedTopic,
+    onTopicSelect: handleTopicSelect,
+    isAiSpeaking: speaking,
+    chatFlowState,
+    onResetConversation: handleResetConversation,
+  };
+
   return (
-    <div className="h-screen w-screen bg-slate-100 dark:bg-slate-900 flex font-sans antialiased overflow-hidden">
-      <aside className={`absolute md:relative z-20 flex-shrink-0 w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex flex-col h-full">
-          <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CapybaraLogo className="w-12 h-12" />
+    <div className="h-screen w-screen bg-slate-100 dark:bg-slate-900 font-sans antialiased overflow-y-auto md:overflow-hidden">
+      {chatFlowState !== 'CHATTING' ? (
+        <div className="flex flex-col items-center justify-center min-h-full p-4 relative">
+          <div className="absolute top-4 right-4 z-10">
+            <ThemeSwitcher />
+          </div>
+          <div className="w-full max-w-lg mx-auto bg-white dark:bg-slate-800 rounded-2xl shadow-xl overflow-hidden animate-fade-in">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col items-center text-center gap-3">
+              <CapybaraLogo className="w-16 h-16" />
               <div>
-                <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">CapyBlaBla</h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400">Your Capybara Tutor</p>
+                <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Welcome to CapyBlaBla</h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Configure your session to start chatting</p>
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              <ThemeSwitcher />
-            </div>
-          </div>
-          <div className="flex-1 overflow-y-auto">
-             <SettingsPanel
-              selectedLanguage={selectedLanguage}
-              onLanguageChange={handleLanguageChange}
-              selectedDifficulty={selectedDifficulty}
-              onDifficultyChange={handleDifficultyChange}
-              onConfirmDifficulty={handleConfirmDifficulty}
-              selectedPartner={selectedPartner}
-              onPartnerChange={handlePartnerChange}
-              voices={languageVoices}
-              selectedVoice={selectedVoice}
-              onVoiceChange={setSelectedVoice}
-              speakingRate={speakingRate}
-              onRateChange={setSpeakingRate}
-              selectedTopic={selectedTopic}
-              onTopicSelect={handleTopicSelect}
-              isAiSpeaking={speaking}
-              chatFlowState={chatFlowState}
-              onResetConversation={handleResetConversation}
-            />
+            <SettingsPanel {...settingsPanelProps} />
           </div>
         </div>
-      </aside>
+      ) : (
+        <div className="flex h-full w-full relative">
+          {isSidebarOpen && (
+            <div
+                onClick={() => setIsSidebarOpen(false)}
+                className="fixed inset-0 bg-black bg-opacity-50 z-20 md:hidden"
+                aria-hidden="true"
+            ></div>
+          )}
 
-      <main className="flex-1 flex flex-col relative">
-        <button 
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className={`md:hidden absolute top-4 z-30 p-2 bg-white dark:bg-slate-700 dark:text-slate-200 rounded-md shadow-md transition-all duration-300 ease-in-out ${isSidebarOpen ? 'left-[21rem]' : 'left-4'}`}
-          aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
-        >
-           {isSidebarOpen ? (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-           ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-4-6h4" />
-            </svg>
-           )}
-        </button>
-        <ChatInterface
-          messages={messages}
-          onSendMessage={handleSendMessage}
-          isAiTyping={isAiTyping}
-          selectedLanguage={selectedLanguage.code}
-          selectedPartner={selectedPartner}
-          isAiSpeaking={speaking}
-          onSkipAiVoice={cancel}
-        />
-      </main>
+          <aside className={`fixed inset-y-0 left-0 md:relative z-30 flex-shrink-0 w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className="flex flex-col h-full">
+              <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <CapybaraLogo className="w-12 h-12" />
+                  <div>
+                    <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">CapyBlaBla</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">Your Capybara Tutor</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <ThemeSwitcher />
+                  <div className="md:hidden">
+                    <IconButton onClick={() => setIsSidebarOpen(false)} aria-label="Close settings">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </IconButton>
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                 <SettingsPanel {...settingsPanelProps} />
+              </div>
+            </div>
+          </aside>
+
+          <main className="flex-1 flex flex-col">
+            <ChatInterface
+              messages={messages}
+              onSendMessage={handleSendMessage}
+              isAiTyping={isAiTyping}
+              selectedLanguage={selectedLanguage.code}
+              selectedPartner={selectedPartner}
+              isAiSpeaking={speaking}
+              onSkipAiVoice={cancel}
+              onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+            />
+          </main>
+        </div>
+      )}
     </div>
   );
 };
