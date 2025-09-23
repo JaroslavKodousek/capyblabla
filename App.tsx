@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import SettingsPanel from './components/SettingsPanel';
 import ChatInterface from './components/ChatInterface';
 import { Message, Sender, Language, Difficulty, ConversationPartner } from './types';
@@ -9,10 +8,12 @@ import { useSpeechSynthesis } from './hooks/useSpeechSynthesis';
 import CapybaraLogo from './components/CapybaraLogo';
 import ThemeSwitcher from './components/ThemeSwitcher';
 
+type ChatFlowState = 'CONFIG_PARTNER' | 'CONFIG_LANGUAGE' | 'CONFIG_DIFFICULTY' | 'CONFIG_TOPIC' | 'CHATTING';
+
 const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedLanguage, setSelectedLanguage] = useState<Language>(LANGUAGES[0]);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(DIFFICULTIES[0]);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(Difficulty.Advanced);
   const [selectedPartner, setSelectedPartner] = useState<ConversationPartner>(CONVERSATION_PARTNERS[0]);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [isAiTyping, setIsAiTyping] = useState(false);
@@ -21,9 +22,14 @@ const App: React.FC = () => {
   const [speakingRate, setSpeakingRate] = useState(1);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
 
-  const { speak, voices } = useSpeechSynthesis();
+  const [chatFlowState, setChatFlowState] = useState<ChatFlowState>('CONFIG_PARTNER');
 
-  const languageVoices = voices.filter(v => v.lang.startsWith(selectedLanguage.code));
+  const { speak, voices, speaking, cancel } = useSpeechSynthesis();
+
+  const languageVoices = useMemo(() => 
+    voices.filter(v => v.lang.startsWith(selectedLanguage.code)), 
+    [voices, selectedLanguage.code]
+  );
 
   useEffect(() => {
     if (languageVoices.length > 0) {
@@ -32,19 +38,38 @@ const App: React.FC = () => {
     } else {
       setSelectedVoice(null);
     }
-  }, [selectedLanguage.code, voices, languageVoices]);
+  }, [languageVoices]);
 
-  // Reset chat and topic when primary settings change, forcing a new topic selection
-  useEffect(() => {
+  const handleResetConversation = () => {
     setMessages([]);
     setSelectedTopic(null);
-  }, [selectedLanguage, selectedDifficulty, selectedPartner]);
+    cancel(); // Stop any ongoing speech
+    setChatFlowState('CONFIG_PARTNER');
+  };
 
-  // Handler to start a new session when a topic is selected
+  const handlePartnerChange = (partner: ConversationPartner) => {
+    setSelectedPartner(partner);
+    setChatFlowState('CONFIG_LANGUAGE');
+  };
+  
+  const handleLanguageChange = (language: Language) => {
+    setSelectedLanguage(language);
+    setChatFlowState('CONFIG_DIFFICULTY');
+  };
+
+  const handleDifficultyChange = (difficulty: Difficulty) => {
+    setSelectedDifficulty(difficulty);
+  };
+  
+  const handleConfirmDifficulty = () => {
+    setChatFlowState('CONFIG_TOPIC');
+  };
+
   const handleTopicSelect = async (topic: string) => {
     setSelectedTopic(topic);
     setMessages([]); // Ensure chat is clear
     setIsAiTyping(true);
+    cancel(); // Stop any previous speech before starting new one
 
     try {
       const { reply, feedback } = await geminiService.sendMessageToAI(
@@ -57,11 +82,12 @@ const App: React.FC = () => {
       const aiMessage: Message = { id: Date.now().toString(), text: reply, sender: Sender.AI, feedback };
       setMessages([aiMessage]);
       speak(reply, selectedLanguage.code, selectedVoice, speakingRate);
+      setChatFlowState('CHATTING');
     } catch (error) {
       console.error("Failed to start new session:", error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: "I'm sorry, I couldn't start our conversation. Please try again.",
+        text: "I'm sorry, I couldn't start our conversation. Please try a different topic or try again.",
         sender: Sender.AI
       };
       setMessages([errorMessage]);
@@ -108,16 +134,19 @@ const App: React.FC = () => {
                 <p className="text-sm text-slate-500 dark:text-slate-400">Your Capybara Tutor</p>
               </div>
             </div>
-            <ThemeSwitcher />
+            <div className="flex items-center gap-1">
+              <ThemeSwitcher />
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto">
              <SettingsPanel
               selectedLanguage={selectedLanguage}
-              onLanguageChange={setSelectedLanguage}
+              onLanguageChange={handleLanguageChange}
               selectedDifficulty={selectedDifficulty}
-              onDifficultyChange={setSelectedDifficulty}
+              onDifficultyChange={handleDifficultyChange}
+              onConfirmDifficulty={handleConfirmDifficulty}
               selectedPartner={selectedPartner}
-              onPartnerChange={setSelectedPartner}
+              onPartnerChange={handlePartnerChange}
               voices={languageVoices}
               selectedVoice={selectedVoice}
               onVoiceChange={setSelectedVoice}
@@ -125,7 +154,9 @@ const App: React.FC = () => {
               onRateChange={setSpeakingRate}
               selectedTopic={selectedTopic}
               onTopicSelect={handleTopicSelect}
-              isSessionActive={messages.length > 0}
+              isAiSpeaking={speaking}
+              chatFlowState={chatFlowState}
+              onResetConversation={handleResetConversation}
             />
           </div>
         </div>
@@ -153,6 +184,8 @@ const App: React.FC = () => {
           isAiTyping={isAiTyping}
           selectedLanguage={selectedLanguage.code}
           selectedPartner={selectedPartner}
+          isAiSpeaking={speaking}
+          onSkipAiVoice={cancel}
         />
       </main>
     </div>

@@ -13,9 +13,11 @@ interface ChatInterfaceProps {
   isAiTyping: boolean;
   selectedLanguage: string;
   selectedPartner: ConversationPartner;
+  isAiSpeaking: boolean;
+  onSkipAiVoice: () => void;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, isAiTyping, selectedLanguage, selectedPartner }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, isAiTyping, selectedLanguage, selectedPartner, isAiSpeaking, onSkipAiVoice }) => {
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -102,20 +104,37 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
             onChange={(e) => setInputText(e.target.value)}
             placeholder={isListening ? "Listening... click mic to stop and send" : "Type your message..."}
             className="flex-1 p-3 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 text-slate-900 dark:text-slate-100 rounded-full focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
-            disabled={isAiTyping || isListening || messages.length === 0}
+            disabled={isAiTyping || isListening || messages.length === 0 || isAiSpeaking}
           />
-          {hasRecognitionSupport && (
-            <IconButton type="button" onClick={handleVoiceClick} disabled={isAiTyping || messages.length === 0} className={isListening ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-slate-100 dark:bg-slate-700'}>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+          {isAiSpeaking ? (
+             <button
+              type="button"
+              onClick={onSkipAiVoice}
+              className="flex items-center justify-center gap-2 px-4 py-3 rounded-full bg-amber-500 text-white font-semibold hover:bg-amber-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50"
+              disabled={!isAiSpeaking}
+              aria-label="Stop text to speech"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 6h12v12H6V6z" />
               </svg>
-            </IconButton>
+              <span>Stop</span>
+            </button>
+          ) : (
+            <>
+              {hasRecognitionSupport && (
+                <IconButton type="button" onClick={handleVoiceClick} disabled={isAiTyping || messages.length === 0} className={isListening ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-slate-100 dark:bg-slate-700'}>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
+                </IconButton>
+              )}
+              <IconButton type="submit" disabled={!inputText.trim() || isAiTyping || isListening || messages.length === 0} className="bg-orange-500 text-white hover:bg-orange-600 disabled:bg-orange-300">
+                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" transform="rotate(90)">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                 </svg>
+              </IconButton>
+            </>
           )}
-          <IconButton type="submit" disabled={!inputText.trim() || isAiTyping || isListening || messages.length === 0} className="bg-orange-500 text-white hover:bg-orange-600 disabled:bg-orange-300">
-             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" transform="rotate(90)">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-             </svg>
-          </IconButton>
         </form>
       </div>
     </div>
