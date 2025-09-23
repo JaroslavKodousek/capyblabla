@@ -18,6 +18,3 @@ View your app in AI Studio: https://ai.studio/apps/drive/1wjzyQm-4olw8nGiOFaLEPM
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
-
-
-[You can find the app here.](https://lingua-ai-chi.vercel.app/)

@@ -1,9 +1,12 @@
-import { Language, Difficulty, Message } from '../types';
+
+import { Language, Difficulty, Message, ConversationPartner } from '../types';
 
 export const sendMessageToAI = async (
   history: Message[],
   language: Language,
-  difficulty: Difficulty
+  difficulty: Difficulty,
+  partner: ConversationPartner,
+  topic: string | null
 ): Promise<{ reply: string; feedback?: string }> => {
   try {
     const response = await fetch('/api/gemini', {
@@ -11,7 +14,7 @@ export const sendMessageToAI = async (
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ history, language, difficulty }),
+      body: JSON.stringify({ history, language, difficulty, partner, topic }),
     });
 
     if (!response.ok) {

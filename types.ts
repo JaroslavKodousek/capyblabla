@@ -14,10 +14,17 @@ export interface Message {
 export interface Language {
   code: string;
   name: string;
+  flag: string;
 }
 
 export enum Difficulty {
   Beginner = 'Beginner',
   Intermediate = 'Intermediate',
   Advanced = 'Advanced',
+}
+
+export enum ConversationPartner {
+  Teacher = 'Strict Teacher',
+  Friend = 'Funny Friend',
+  Colleague = 'Fine Colleague',
 }

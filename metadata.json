@@ -1,6 +1,6 @@
 {
-  "name": "Lingua AI Tutor",
-  "description": "An innovative language app with a minimalist Scandinavian user interface. It includes an AI language tutor with whom users can practice conversation, receive feedback, and use a voice mode for natural interaction.",
+  "name": "CapyBlaBla",
+  "description": "Practice languages by chatting with a friendly AI capybara. CapyBlaBla offers conversation practice, feedback, and voice interaction in a fun, modern interface.",
   "requestFramePermissions": [
     "microphone"
   ]

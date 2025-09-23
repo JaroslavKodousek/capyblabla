@@ -1,13 +1,13 @@
 
-import { Language, Difficulty } from './types';
+import { Language, Difficulty, ConversationPartner } from './types';
 
 export const LANGUAGES: Language[] = [
-  { code: 'en-US', name: 'English (US)' },
-  { code: 'es-ES', name: 'Spanish' },
-  { code: 'fr-FR', name: 'French' },
-  { code: 'de-DE', name: 'German' },
-  { code: 'it-IT', name: 'Italian' },
-  { code: 'ja-JP', name: 'Japanese' },
+  { code: 'en-US', name: 'English (US)', flag: '🇺🇸' },
+  { code: 'es-ES', name: 'Spanish', flag: '🇪🇸' },
+  { code: 'fr-FR', name: 'French', flag: '🇫🇷' },
+  { code: 'de-DE', name: 'German', flag: '🇩🇪' },
+  { code: 'it-IT', name: 'Italian', flag: '🇮🇹' },
+  { code: 'ja-JP', name: 'Japanese', flag: '🇯🇵' },
 ];
 
 export const DIFFICULTIES: Difficulty[] = [
@@ -16,11 +16,21 @@ export const DIFFICULTIES: Difficulty[] = [
   Difficulty.Advanced,
 ];
 
-export const CONVERSATION_STARTERS: string[] = [
-  'What did you do last weekend?',
-  'Tell me about your favorite hobby.',
-  'What is the best movie you have seen recently?',
-  'If you could travel anywhere, where would you go?',
-  'What are your plans for tomorrow?',
-  'Describe your dream job.',
+export const CONVERSATION_PARTNERS: ConversationPartner[] = [
+  ConversationPartner.Friend,
+  ConversationPartner.Teacher,
+  ConversationPartner.Colleague,
+];
+
+export const TOPICS: string[] = [
+  'Small Talk',
+  'Travel',
+  'Technology',
+  'Food',
+  'History',
+  'Business',
+  'AI',
+  'Geocaching',
+  'Politics',
+  'Crypto',
 ];
