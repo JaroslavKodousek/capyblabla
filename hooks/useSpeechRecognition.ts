@@ -58,6 +58,7 @@ export const useSpeechRecognition = (lang: string) => {
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const timeoutRef = useRef<number | null>(null);
+  const finalTranscriptRef = useRef<string>('');
 
   useEffect(() => {
     if (!SpeechRecognition) {
@@ -71,11 +72,19 @@ export const useSpeechRecognition = (lang: string) => {
     recognition.lang = lang;
     
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let fullTranscript = '';
-      for (let i = 0; i < event.results.length; i++) {
-        fullTranscript += event.results[i][0].transcript;
+      let interimTranscript = '';
+      // Loop through results from the last known index.
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        // If the result is final, append it to our ref.
+        if (event.results[i].isFinal) {
+          finalTranscriptRef.current += event.results[i][0].transcript;
+        } else {
+          // Otherwise, it's an interim result.
+          interimTranscript += event.results[i][0].transcript;
+        }
       }
-      setTranscript(fullTranscript);
+      // Update the state with the combination of final and interim parts.
+      setTranscript(finalTranscriptRef.current + interimTranscript);
     };
 
     recognition.onend = () => {
@@ -97,6 +106,7 @@ export const useSpeechRecognition = (lang: string) => {
 
   const startListening = useCallback(() => {
     if (recognitionRef.current && !isListening) {
+      finalTranscriptRef.current = '';
       setTranscript('');
       setError(null);
       recognitionRef.current.start();

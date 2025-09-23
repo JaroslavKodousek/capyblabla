@@ -65,6 +65,16 @@ const App: React.FC = () => {
   const handleConfirmDifficulty = () => {
     setChatFlowState('CONFIG_TOPIC');
   };
+  
+  const handleGoBack = () => {
+    if (chatFlowState === 'CONFIG_LANGUAGE') {
+      setChatFlowState('CONFIG_PARTNER');
+    } else if (chatFlowState === 'CONFIG_DIFFICULTY') {
+      setChatFlowState('CONFIG_LANGUAGE');
+    } else if (chatFlowState === 'CONFIG_TOPIC') {
+      setChatFlowState('CONFIG_DIFFICULTY');
+    }
+  };
 
   const handleTopicSelect = async (topic: string) => {
     setSelectedTopic(topic);
@@ -142,6 +152,7 @@ const App: React.FC = () => {
     isAiSpeaking: speaking,
     chatFlowState,
     onResetConversation: handleResetConversation,
+    onGoBack: handleGoBack,
   };
 
   return (

@@ -20,6 +20,7 @@ interface SettingsPanelProps {
   isAiSpeaking: boolean;
   chatFlowState: 'CONFIG_PARTNER' | 'CONFIG_LANGUAGE' | 'CONFIG_DIFFICULTY' | 'CONFIG_TOPIC' | 'CHATTING';
   onResetConversation: () => void;
+  onGoBack: () => void;
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({
@@ -40,6 +41,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   isAiSpeaking,
   chatFlowState,
   onResetConversation,
+  onGoBack,
 }) => {
   const [isVoiceSettingsOpen, setIsVoiceSettingsOpen] = useState(false);
 
@@ -52,10 +54,22 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     onVoiceChange(voice || null);
   };
   
-  const renderStep = (title: string, children: React.ReactNode) => (
+  const renderStep = (title: string, children: React.ReactNode, showBackButton: boolean) => (
     <div className="animate-fade-in">
       <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4 text-center">{title}</h3>
-      {children}
+      <div className="px-4">
+        {children}
+      </div>
+      {showBackButton && (
+        <div className="mt-6 text-center px-4">
+          <button
+            onClick={onGoBack}
+            className="text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-sky-500 dark:hover:text-sky-400 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 rounded-md px-2 py-1"
+          >
+            &larr; Go Back
+          </button>
+        </div>
+      )}
     </div>
   );
 
@@ -134,7 +148,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               </button>
             ))}
           </div>
-        ));
+        ), false);
       case 'CONFIG_LANGUAGE':
         return renderStep('Step 2: Choose your Language', (
           <div className="grid grid-cols-3 gap-2">
@@ -153,7 +167,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               </button>
             ))}
           </div>
-        ));
+        ), true);
       case 'CONFIG_DIFFICULTY':
         return renderStep('Step 3: Choose Difficulty', (
            <div className="space-y-4">
@@ -174,7 +188,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               <span>Confirm</span>
             </button>
            </div>
-        ));
+        ), true);
       case 'CONFIG_TOPIC':
         return renderStep('Step 4: Choose a Topic', (
           <div className="flex flex-wrap gap-2 justify-center">
@@ -192,7 +206,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               </button>
             ))}
           </div>
-        ));
+        ), true);
       case 'CHATTING':
         return (
           <div className="space-y-6">
