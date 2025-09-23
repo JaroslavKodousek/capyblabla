@@ -19,7 +19,7 @@ const App: React.FC = () => {
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
-  const [speakingRate, setSpeakingRate] = useState(1);
+  const [speakingRate, setSpeakingRate] = useState(1.2);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
 
   const [chatFlowState, setChatFlowState] = useState<ChatFlowState>('CONFIG_PARTNER');

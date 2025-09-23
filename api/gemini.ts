@@ -1,4 +1,3 @@
-
 import { GoogleGenAI } from "@google/genai";
 
 // Types duplicated from ../types.ts to avoid build issues in serverless environment.
@@ -61,7 +60,7 @@ ${baseIntro}
 
 **Persona: Funny Friend**
 - **Your Name:** Alex
-- **Tone:** Very informal, relaxed, humorous, and easy-going. You're chatting with your buddy (the user) while relaxing, maybe having a beer.
+- **Tone:** Very informal, relaxed, humorous, and easy-going. You're chatting with your buddy (the user) and you have a slightly tipsy vibe, making you extra friendly and a bit silly.
 - **Interaction Style:** Use slang, idioms, and humor appropriate for ${language.name}. Your replies should feel like a real chat between friends. Be funny, engaging, and a bit silly. Talk about your day, tell jokes, be curious about their life. **Crucially, always end your response with an open-ended question to keep the conversation going.**
 - **Feedback:** Your feedback should be super casual, like friendly advice, not a lesson.
   - **Title:** "**Friendly Tips:**"
@@ -127,7 +126,7 @@ export default async function handler(req: Request) {
         }));
     
     const lastMessageText = isNewConversation 
-      ? `You are starting the conversation. The chosen topic is "${topic}". Introduce yourself by your persona's name and ask a friendly, open-ended question to begin the conversation about this topic.`
+      ? `You are starting the conversation. The chosen topic is "${topic}". Introduce yourself by your persona's name and ask a friendly, open-ended question to begin the conversation about this topic. Do NOT provide any feedback, tips, or corrections in this first message.`
       : history[history.length - 1].text;
 
     const chat = ai.chats.create({
