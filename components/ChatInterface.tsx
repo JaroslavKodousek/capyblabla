@@ -15,9 +15,10 @@ interface ChatInterfaceProps {
   isAiSpeaking: boolean;
   onSkipAiVoice: () => void;
   onToggleSidebar: () => void;
+  isSidebarOpen: boolean;
 }
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, isAiTyping, selectedLanguage, selectedPartner, isAiSpeaking, onSkipAiVoice, onToggleSidebar }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, isAiTyping, selectedLanguage, selectedPartner, isAiSpeaking, onSkipAiVoice, onToggleSidebar, isSidebarOpen }) => {
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -68,13 +69,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
   return (
     <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-900">
       <header className="p-4 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex items-center gap-4">
-        <div className="md:hidden">
+        {!isSidebarOpen && (
             <IconButton onClick={onToggleSidebar} aria-label="Open settings">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
             </IconButton>
-        </div>
+        )}
         <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">Chat with {selectedPartner}</h2>
       </header>
       <div className="flex-1 overflow-y-auto p-6">

@@ -17,6 +17,7 @@ interface SettingsPanelProps {
   onRateChange: (rate: number) => void;
   selectedTopic: string | null;
   onTopicSelect: (topic: string) => void;
+  onStartConversation: () => void;
   isAiSpeaking: boolean;
   chatFlowState: 'CONFIG_PARTNER' | 'CONFIG_LANGUAGE' | 'CONFIG_DIFFICULTY' | 'CONFIG_TOPIC' | 'CHATTING';
   onResetConversation: () => void;
@@ -38,6 +39,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onRateChange,
   selectedTopic,
   onTopicSelect,
+  onStartConversation,
   isAiSpeaking,
   chatFlowState,
   onResetConversation,
@@ -191,20 +193,29 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         ), true);
       case 'CONFIG_TOPIC':
         return renderStep('Step 4: Choose a Topic', (
-          <div className="flex flex-wrap gap-2 justify-center">
-            {TOPICS.map(topic => (
-              <button
-                key={topic}
-                onClick={() => onTopicSelect(topic)}
-                className={`px-3 py-1.5 text-sm rounded-full border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 ${
-                  selectedTopic === topic
-                    ? 'bg-sky-500 text-white border-sky-500'
-                    : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 hover:border-slate-400 dark:hover:border-slate-500'
-                }`}
-              >
-                {topic}
-              </button>
-            ))}
+          <div className="space-y-6">
+            <div className="flex flex-wrap gap-2 justify-center">
+              {TOPICS.map(topic => (
+                <button
+                  key={topic}
+                  onClick={() => onTopicSelect(topic)}
+                  className={`px-3 py-1.5 text-sm rounded-full border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 ${
+                    selectedTopic === topic
+                      ? 'bg-sky-500 text-white border-sky-500'
+                      : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 hover:border-slate-400 dark:hover:border-slate-500'
+                  }`}
+                >
+                  {topic}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={onStartConversation}
+              disabled={!selectedTopic}
+              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-sky-500 text-white font-semibold hover:bg-sky-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 focus:ring-sky-500 disabled:bg-slate-400 dark:disabled:bg-slate-600 disabled:cursor-not-allowed"
+            >
+              <span>Start Conversation</span>
+            </button>
           </div>
         ), true);
       case 'CHATTING':

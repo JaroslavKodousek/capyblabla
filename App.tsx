@@ -76,12 +76,22 @@ const App: React.FC = () => {
     }
   };
 
-  const handleTopicSelect = async (topic: string) => {
+  const handleTopicSelect = (topic: string) => {
     setSelectedTopic(topic);
+  };
+
+  const handleStartConversation = async () => {
+    if (!selectedTopic) return;
+
     setMessages([]); // Ensure chat is clear
+    // Do not close sidebar on mobile by default, user can choose to
+    // setIsSidebarOpen(false); 
+
+    // Switch to chat view immediately and show loading state
+    setChatFlowState('CHATTING');
     setIsAiTyping(true);
+
     cancel(); // Stop any previous speech before starting new one
-    setIsSidebarOpen(false); // Close sidebar on mobile after selection
 
     try {
       const { reply, feedback } = await geminiService.sendMessageToAI(
@@ -89,12 +99,11 @@ const App: React.FC = () => {
         selectedLanguage,
         selectedDifficulty,
         selectedPartner,
-        topic
+        selectedTopic
       );
       const aiMessage: Message = { id: Date.now().toString(), text: reply, sender: Sender.AI, feedback };
       setMessages([aiMessage]);
       speak(reply, selectedLanguage.code, selectedVoice, speakingRate);
-      setChatFlowState('CHATTING');
     } catch (error) {
       console.error("Failed to start new session:", error);
       const errorMessage: Message = {
@@ -149,6 +158,7 @@ const App: React.FC = () => {
     onRateChange: setSpeakingRate,
     selectedTopic,
     onTopicSelect: handleTopicSelect,
+    onStartConversation: handleStartConversation,
     isAiSpeaking: speaking,
     chatFlowState,
     onResetConversation: handleResetConversation,
@@ -174,7 +184,7 @@ const App: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="flex h-full w-full relative">
+        <div className="h-full w-full relative">
           {isSidebarOpen && (
             <div
                 onClick={() => setIsSidebarOpen(false)}
@@ -183,7 +193,7 @@ const App: React.FC = () => {
             ></div>
           )}
 
-          <aside className={`fixed inset-y-0 left-0 md:relative z-30 flex-shrink-0 w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 transition-transform duration-300 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+          <aside className={`fixed inset-y-0 left-0 z-30 flex-shrink-0 w-80 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
             <div className="flex flex-col h-full">
               <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -195,13 +205,11 @@ const App: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-1">
                   <ThemeSwitcher />
-                  <div className="md:hidden">
-                    <IconButton onClick={() => setIsSidebarOpen(false)} aria-label="Close settings">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </IconButton>
-                  </div>
+                  <IconButton onClick={() => setIsSidebarOpen(false)} aria-label="Close settings">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                  </IconButton>
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto">
@@ -210,7 +218,7 @@ const App: React.FC = () => {
             </div>
           </aside>
 
-          <main className="flex-1 flex flex-col">
+          <main className={`flex-1 flex flex-col h-full transition-all duration-300 ease-in-out ${isSidebarOpen ? 'md:ml-80' : 'ml-0'}`}>
             <ChatInterface
               messages={messages}
               onSendMessage={handleSendMessage}
@@ -219,6 +227,7 @@ const App: React.FC = () => {
               selectedPartner={selectedPartner}
               isAiSpeaking={speaking}
               onSkipAiVoice={cancel}
+              isSidebarOpen={isSidebarOpen}
               onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
             />
           </main>
