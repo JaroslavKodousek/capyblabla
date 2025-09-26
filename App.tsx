@@ -8,6 +8,7 @@ import { useSpeechSynthesis } from './hooks/useSpeechSynthesis';
 import CapybaraLogo from './components/CapybaraLogo';
 import ThemeSwitcher from './components/ThemeSwitcher';
 import IconButton from './components/IconButton';
+import InAppBrowserWarning from './components/InAppBrowserWarning';
 
 type ChatFlowState = 'CONFIG_PARTNER' | 'CONFIG_LANGUAGE' | 'CONFIG_DIFFICULTY' | 'CONFIG_TOPIC' | 'CHATTING';
 
@@ -24,8 +25,17 @@ const App: React.FC = () => {
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
 
   const [chatFlowState, setChatFlowState] = useState<ChatFlowState>('CONFIG_PARTNER');
+  const [isLimitedBrowser, setIsLimitedBrowser] = useState(false);
 
-  const { speak, voices, speaking, cancel } = useSpeechSynthesis();
+  const { speak, voices, speaking, cancel, supported: speechSynthesisSupported } = useSpeechSynthesis();
+
+  useEffect(() => {
+    // Detect common in-app browsers where Web Speech API might be restricted.
+    const ua = navigator.userAgent || navigator.vendor || (window as any).opera;
+    if (/FBAN|FBAV|FB_IAB|Instagram|Messenger/i.test(ua)) {
+      setIsLimitedBrowser(true);
+    }
+  }, []);
 
   const languageVoices = useMemo(() => 
     voices.filter(v => selectedLanguage && v.lang.startsWith(selectedLanguage.code)), 
@@ -106,7 +116,9 @@ const App: React.FC = () => {
       );
       const aiMessage: Message = { id: Date.now().toString(), text: reply, sender: Sender.AI, feedback };
       setMessages([aiMessage]);
-      speak(reply, selectedLanguage.code, selectedVoice, speakingRate);
+      if (speechSynthesisSupported) {
+        speak(reply, selectedLanguage.code, selectedVoice, speakingRate);
+      }
     } catch (error) {
       console.error("Failed to start new session:", error);
       const errorMessage: Message = {
@@ -134,7 +146,9 @@ const App: React.FC = () => {
       const { reply, feedback } = await geminiService.sendMessageToAI(updatedMessages, selectedLanguage, selectedDifficulty, selectedPartner, selectedTopic);
       const aiMessage: Message = { id: (Date.now() + 1).toString(), text: reply, sender: Sender.AI, feedback };
       setMessages(prev => [...prev, aiMessage]);
-      speak(reply, selectedLanguage.code, selectedVoice, speakingRate);
+      if (speechSynthesisSupported) {
+        speak(reply, selectedLanguage.code, selectedVoice, speakingRate);
+      }
     } catch (error) {
       console.error(error);
       const errorMessage: Message = {
@@ -167,10 +181,12 @@ const App: React.FC = () => {
     chatFlowState,
     onResetConversation: handleResetConversation,
     onGoBack: handleGoBack,
+    isSpeechSynthesisSupported: speechSynthesisSupported,
   };
 
   return (
     <div className="h-screen w-screen bg-slate-100 dark:bg-slate-900 font-sans antialiased overflow-y-auto md:overflow-hidden">
+      {isLimitedBrowser && <InAppBrowserWarning />}
       {chatFlowState !== 'CHATTING' ? (
         <div className="flex flex-col items-center justify-center min-h-full p-4 relative">
           <div className="absolute top-4 right-4 z-10">

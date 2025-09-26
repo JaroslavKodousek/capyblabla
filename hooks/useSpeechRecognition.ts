@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
+
+import { useState, useRef, useCallback, useEffect } from 'react';
 
 // FIX: Add missing Web Speech API type definitions to resolve TypeScript errors.
 // These types are not included by default in TypeScript's DOM library and are necessary
@@ -15,6 +16,7 @@ declare global {
     lang: string;
     start(): void;
     stop(): void;
+    abort(): void;
     onresult: (event: SpeechRecognitionEvent) => void;
     onend: () => void;
     onerror: (event: SpeechRecognitionErrorEvent) => void;
@@ -49,52 +51,62 @@ declare global {
   }
 }
 
+const SpeechRecognition = typeof window !== 'undefined' ? window.SpeechRecognition || window.webkitSpeechRecognition : null;
+
 export const useSpeechRecognition = (lang: string) => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
+  const stopListening = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    setIsListening(false);
+  }, []);
+
   const startListening = useCallback(() => {
-    if (isListening || recognitionRef.current) {
-      return; // Already listening or an instance exists, do nothing.
+    if (isListening) {
+      stopListening();
+      return;
     }
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       setError("Speech recognition is not supported in this browser.");
       return;
     }
 
+    // Force cleanup of any previous instance to prevent bugs.
+    if (recognitionRef.current) {
+      recognitionRef.current.abort();
+    }
+    
     setTranscript('');
     setError(null);
-
+    
     try {
       const recognition = new SpeechRecognition();
-      recognitionRef.current = recognition; // Store the instance in the ref
-      recognition.continuous = true;
+      recognitionRef.current = recognition;
+
+      // Setting continuous to false is more reliable on mobile to prevent duplication bugs.
+      // The browser will automatically stop recognition after a pause in speech.
+      recognition.continuous = false;
       recognition.interimResults = true;
       recognition.lang = lang;
   
       recognition.onresult = (event: SpeechRecognitionEvent) => {
         let finalTranscript = '';
-        let interimTranscript = '';
-        // To prevent duplication bugs on some mobile browsers, we rebuild the entire
-        // transcript from the results list each time an event is received.
-        for (let i = 0; i < event.results.length; ++i) {
-          const transcriptPart = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            finalTranscript += transcriptPart;
-          } else {
-            interimTranscript += transcriptPart;
-          }
+        for (let i = 0; i < event.results.length; i++) {
+            finalTranscript += event.results[i][0].transcript;
         }
-        setTranscript(finalTranscript + interimTranscript);
+        setTranscript(finalTranscript);
       };
   
       recognition.onend = () => {
         setIsListening(false);
-        recognitionRef.current = null; // Clean up ref on end
+        // Do not nullify the ref here, let stopListening handle it
       };
       
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -113,8 +125,7 @@ export const useSpeechRecognition = (lang: string) => {
         }
         
         setError(errorMessage);
-        setIsListening(false);
-        recognitionRef.current = null; // Clean up ref on error
+        stopListening();
       };
 
       recognition.start();
@@ -123,21 +134,22 @@ export const useSpeechRecognition = (lang: string) => {
     } catch (err) {
       console.error("Speech Recognition initialization failed:", err);
       setError("Failed to initialize speech recognition. This browser may not be fully compatible.");
+      stopListening();
     }
-  }, [isListening, lang]);
-
-  const stopListening = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      // onend will handle state changes and cleanup
-    }
-  }, []);
+  }, [lang, isListening, stopListening]);
 
   const clearTranscript = useCallback(() => {
     setTranscript('');
   }, []);
+  
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
 
-  const hasRecognitionSupport = !!(typeof window !== 'undefined' && (window.SpeechRecognition || window.webkitSpeechRecognition));
-
-  return { isListening, transcript, error, startListening, stopListening, hasRecognitionSupport, clearTranscript };
+  return { isListening, transcript, error, startListening, stopListening, hasRecognitionSupport: !!SpeechRecognition, clearTranscript };
 };

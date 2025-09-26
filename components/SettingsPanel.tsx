@@ -21,6 +21,7 @@ interface SettingsPanelProps {
   chatFlowState: 'CONFIG_PARTNER' | 'CONFIG_LANGUAGE' | 'CONFIG_DIFFICULTY' | 'CONFIG_TOPIC' | 'CHATTING';
   onResetConversation: () => void;
   onGoBack: () => void;
+  isSpeechSynthesisSupported: boolean;
 }
 
 const SettingsPanel: React.FC<SettingsPanelProps> = ({
@@ -42,6 +43,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   chatFlowState,
   onResetConversation,
   onGoBack,
+  isSpeechSynthesisSupported,
 }) => {
   const [isVoiceSettingsOpen, setIsVoiceSettingsOpen] = useState(false);
 
@@ -221,42 +223,44 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
               </svg>
               <span>Start New Chat</span>
             </button>
-             <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-              <button
-                onClick={() => setIsVoiceSettingsOpen(!isVoiceSettingsOpen)}
-                className="flex justify-between items-center w-full text-left font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 focus:outline-none"
-              >
-                <span>Advanced Voice Settings</span>
-                <svg
-                  className={`w-5 h-5 transition-transform duration-200 ${isVoiceSettingsOpen ? 'transform rotate-180' : ''}`}
-                  fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            {isSpeechSynthesisSupported && (
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
+                <button
+                  onClick={() => setIsVoiceSettingsOpen(!isVoiceSettingsOpen)}
+                  className="flex justify-between items-center w-full text-left font-medium text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 focus:outline-none"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                </svg>
-              </button>
-              {isVoiceSettingsOpen && (
-                <div className={`mt-4 space-y-4 transition-opacity ${isAiSpeaking ? 'opacity-50' : ''}`}>
-                  <fieldset disabled={isAiSpeaking}>
-                    <div>
-                      <label htmlFor="voice" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Voice</label>
-                      <select id="voice" value={selectedVoice?.name || ''} onChange={handleVoiceChange} disabled={voices.length === 0}
-                        className="w-full p-3 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {voices.length > 0 ? voices.map(voice => (
-                          <option key={voice.name} value={voice.name}>{voice.name}</option>
-                        )) : <option value="">No voices available</option>}
-                      </select>
-                    </div>
-                    <div>
-                      <label htmlFor="rate" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Speaking Rate ({speakingRate.toFixed(1)})</label>
-                      <input type="range" id="rate" min="0.5" max="2" step="0.1" value={speakingRate} onChange={(e) => onRateChange(parseFloat(e.target.value))}
-                        className="w-full h-2 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer accent-sky-500 disabled:cursor-not-allowed"
-                      />
-                    </div>
-                  </fieldset>
-                </div>
-              )}
-            </div>
+                  <span>Advanced Voice Settings</span>
+                  <svg
+                    className={`w-5 h-5 transition-transform duration-200 ${isVoiceSettingsOpen ? 'transform rotate-180' : ''}`}
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+                {isVoiceSettingsOpen && (
+                  <div className={`mt-4 space-y-4 transition-opacity ${isAiSpeaking ? 'opacity-50' : ''}`}>
+                    <fieldset disabled={isAiSpeaking}>
+                      <div>
+                        <label htmlFor="voice" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Voice</label>
+                        <select id="voice" value={selectedVoice?.name || ''} onChange={handleVoiceChange} disabled={voices.length === 0}
+                          className="w-full p-3 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {voices.length > 0 ? voices.map(voice => (
+                            <option key={voice.name} value={voice.name}>{voice.name}</option>
+                          )) : <option value="">No voices available</option>}
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="rate" className="block text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Speaking Rate ({speakingRate.toFixed(1)})</label>
+                        <input type="range" id="rate" min="0.5" max="2" step="0.1" value={speakingRate} onChange={(e) => onRateChange(parseFloat(e.target.value))}
+                          className="w-full h-2 bg-slate-200 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer accent-sky-500 disabled:cursor-not-allowed"
+                        />
+                      </div>
+                    </fieldset>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         );
       default:
