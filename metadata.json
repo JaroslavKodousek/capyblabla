@@ -1,6 +1,6 @@
 {
-  "name": "CapyBlaBla",
-  "description": "Practice languages by chatting with a friendly AI capybara. CapyBlaBla offers conversation practice, feedback, and voice interaction in a fun, modern interface.",
+  "name": "CapyBlahBlah",
+  "description": "Practice languages by chatting with a friendly AI capybara. CapyBlahBlah offers conversation practice, feedback, and voice interaction in a fun, modern interface.",
   "requestFramePermissions": [
     "microphone"
   ]

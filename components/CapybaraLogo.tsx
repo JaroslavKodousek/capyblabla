@@ -5,7 +5,7 @@ const CapybaraLogo: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 800 800"
     {...props}
-    aria-label="CapyBlaBla Logo"
+    aria-label="CapyBlahBlah Logo"
     role="img"
   >
     <g>

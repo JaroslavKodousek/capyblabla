@@ -83,7 +83,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
           <div className="text-center text-slate-500 dark:text-slate-400 flex flex-col items-center justify-center h-full">
             <div className="max-w-md">
                 <CapybaraLogo className="w-56 h-56 mx-auto" />
-                <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mt-6">Welcome to CapyBlaBla!</h3>
+                <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-200 mt-6">Welcome to CapyBlahBlah!</h3>
                 <p className="mt-2 text-slate-600 dark:text-slate-400">
                   Choose your partner, language, and a conversation topic from the sidebar to begin.
                 </p>

@@ -84,8 +84,8 @@ const App: React.FC = () => {
     if (!selectedTopic) return;
 
     setMessages([]); // Ensure chat is clear
-    // Do not close sidebar on mobile by default, user can choose to
-    // setIsSidebarOpen(false); 
+    // Automatically collapse the sidebar when the conversation starts.
+    setIsSidebarOpen(false);
 
     // Switch to chat view immediately and show loading state
     setChatFlowState('CHATTING');
@@ -176,7 +176,7 @@ const App: React.FC = () => {
             <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex flex-col items-center text-center gap-3">
               <CapybaraLogo className="w-16 h-16" />
               <div>
-                <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Welcome to CapyBlaBla</h1>
+                <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">Welcome to CapyBlahBlah</h1>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Configure your session to start chatting</p>
               </div>
             </div>
@@ -199,7 +199,7 @@ const App: React.FC = () => {
                 <div className="flex items-center gap-3">
                   <CapybaraLogo className="w-12 h-12" />
                   <div>
-                    <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">CapyBlaBla</h1>
+                    <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">CapyBlahBlah</h1>
                     <p className="text-sm text-slate-500 dark:text-slate-400">Your Capybara Tutor</p>
                   </div>
                 </div>
