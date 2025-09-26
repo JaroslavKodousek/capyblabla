@@ -24,7 +24,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
   const inputRef = useRef<HTMLInputElement>(null);
   const wasListeningRef = useRef(false);
 
-  const { isListening, transcript, startListening, stopListening, hasRecognitionSupport, clearTranscript } = useSpeechRecognition(selectedLanguage);
+  const { isListening, transcript, error, startListening, stopListening, hasRecognitionSupport, clearTranscript } = useSpeechRecognition(selectedLanguage);
 
   useEffect(() => {
     setInputText(transcript);
@@ -144,6 +144,11 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ messages, onSendMessage, 
             </>
           )}
         </form>
+         {error && (
+          <p className="text-center text-red-500 dark:text-red-400 text-sm mt-2 animate-fade-in px-4">
+            {error}
+          </p>
+        )}
       </div>
     </div>
   );

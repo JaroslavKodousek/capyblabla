@@ -3,12 +3,11 @@ import { Language, Difficulty, ConversationPartner } from '../types';
 import { LANGUAGES, DIFFICULTIES, CONVERSATION_PARTNERS, TOPICS } from '../constants';
 
 interface SettingsPanelProps {
-  selectedLanguage: Language;
+  selectedLanguage: Language | null;
   onLanguageChange: (language: Language) => void;
-  selectedDifficulty: Difficulty;
+  selectedDifficulty: Difficulty | null;
   onDifficultyChange: (difficulty: Difficulty) => void;
-  onConfirmDifficulty: () => void;
-  selectedPartner: ConversationPartner;
+  selectedPartner: ConversationPartner | null;
   onPartnerChange: (partner: ConversationPartner) => void;
   voices: SpeechSynthesisVoice[];
   selectedVoice: SpeechSynthesisVoice | null;
@@ -29,7 +28,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onLanguageChange,
   selectedDifficulty,
   onDifficultyChange,
-  onConfirmDifficulty,
   selectedPartner,
   onPartnerChange,
   voices,
@@ -46,10 +44,6 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onGoBack,
 }) => {
   const [isVoiceSettingsOpen, setIsVoiceSettingsOpen] = useState(false);
-
-  const handleDiffChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    onDifficultyChange(e.target.value as Difficulty);
-  };
 
   const handleVoiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const voice = voices.find(v => v.name === e.target.value);
@@ -159,7 +153,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 key={lang.code}
                 onClick={() => onLanguageChange(lang)}
                 className={`p-3 text-center rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 flex flex-col items-center justify-center h-24 ${
-                  selectedLanguage.code === lang.code
+                  selectedLanguage?.code === lang.code
                     ? 'bg-sky-500 text-white border-sky-500 shadow'
                     : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 hover:border-slate-400 dark:hover:border-slate-500'
                 }`}
@@ -172,24 +166,21 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         ), true);
       case 'CONFIG_DIFFICULTY':
         return renderStep('Step 3: Choose Difficulty', (
-           <div className="space-y-4">
-            <select
-              id="difficulty"
-              value={selectedDifficulty}
-              onChange={handleDiffChange}
-              className="w-full p-3 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-200 border border-slate-300 dark:border-slate-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition"
-            >
-              {DIFFICULTIES.map(diff => (
-                <option key={diff} value={diff}>{diff}</option>
-              ))}
-            </select>
-            <button
-              onClick={onConfirmDifficulty}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg bg-sky-500 text-white font-semibold hover:bg-sky-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 focus:ring-sky-500"
-            >
-              <span>Confirm</span>
-            </button>
-           </div>
+           <div className="grid grid-cols-1 gap-2">
+            {DIFFICULTIES.map(diff => (
+              <button
+                key={diff}
+                onClick={() => onDifficultyChange(diff)}
+                className={`p-3 text-center text-sm rounded-lg border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 ${
+                  selectedDifficulty === diff
+                    ? 'bg-sky-500 text-white border-sky-500 shadow'
+                    : 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 hover:border-slate-400 dark:hover:border-slate-500'
+                }`}
+              >
+                {diff}
+              </button>
+            ))}
+          </div>
         ), true);
       case 'CONFIG_TOPIC':
         return renderStep('Step 4: Choose a Topic', (

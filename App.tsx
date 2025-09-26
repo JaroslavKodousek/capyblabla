@@ -13,9 +13,9 @@ type ChatFlowState = 'CONFIG_PARTNER' | 'CONFIG_LANGUAGE' | 'CONFIG_DIFFICULTY' 
 
 const App: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [selectedLanguage, setSelectedLanguage] = useState<Language>(LANGUAGES[0]);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>(Difficulty.Advanced);
-  const [selectedPartner, setSelectedPartner] = useState<ConversationPartner>(CONVERSATION_PARTNERS[0]);
+  const [selectedLanguage, setSelectedLanguage] = useState<Language | null>(null);
+  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | null>(null);
+  const [selectedPartner, setSelectedPartner] = useState<ConversationPartner | null>(null);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -28,8 +28,8 @@ const App: React.FC = () => {
   const { speak, voices, speaking, cancel } = useSpeechSynthesis();
 
   const languageVoices = useMemo(() => 
-    voices.filter(v => v.lang.startsWith(selectedLanguage.code)), 
-    [voices, selectedLanguage.code]
+    voices.filter(v => selectedLanguage && v.lang.startsWith(selectedLanguage.code)), 
+    [voices, selectedLanguage]
   );
 
   useEffect(() => {
@@ -44,6 +44,9 @@ const App: React.FC = () => {
   const handleResetConversation = () => {
     setMessages([]);
     setSelectedTopic(null);
+    setSelectedPartner(null);
+    setSelectedLanguage(null);
+    setSelectedDifficulty(null);
     cancel(); // Stop any ongoing speech
     setChatFlowState('CONFIG_PARTNER');
   };
@@ -60,9 +63,6 @@ const App: React.FC = () => {
 
   const handleDifficultyChange = (difficulty: Difficulty) => {
     setSelectedDifficulty(difficulty);
-  };
-  
-  const handleConfirmDifficulty = () => {
     setChatFlowState('CONFIG_TOPIC');
   };
   
@@ -81,7 +81,10 @@ const App: React.FC = () => {
   };
 
   const handleStartConversation = async () => {
-    if (!selectedTopic) return;
+    if (!selectedTopic || !selectedLanguage || !selectedDifficulty || !selectedPartner) {
+        console.error("Cannot start conversation with incomplete configuration.");
+        return;
+    }
 
     setMessages([]); // Ensure chat is clear
     // Automatically collapse the sidebar when the conversation starts.
@@ -118,7 +121,9 @@ const App: React.FC = () => {
   };
 
   const handleSendMessage = async (text: string) => {
-    if (!text.trim()) return;
+    if (!text.trim() || !selectedLanguage || !selectedDifficulty || !selectedPartner) {
+        return;
+    }
 
     const userMessage: Message = { id: Date.now().toString(), text, sender: Sender.User };
     const updatedMessages = [...messages, userMessage];
@@ -148,7 +153,6 @@ const App: React.FC = () => {
     onLanguageChange: handleLanguageChange,
     selectedDifficulty,
     onDifficultyChange: handleDifficultyChange,
-    onConfirmDifficulty: handleConfirmDifficulty,
     selectedPartner,
     onPartnerChange: handlePartnerChange,
     voices: languageVoices,
@@ -223,8 +227,8 @@ const App: React.FC = () => {
               messages={messages}
               onSendMessage={handleSendMessage}
               isAiTyping={isAiTyping}
-              selectedLanguage={selectedLanguage.code}
-              selectedPartner={selectedPartner}
+              selectedLanguage={selectedLanguage!.code}
+              selectedPartner={selectedPartner!}
               isAiSpeaking={speaking}
               onSkipAiVoice={cancel}
               isSidebarOpen={isSidebarOpen}
