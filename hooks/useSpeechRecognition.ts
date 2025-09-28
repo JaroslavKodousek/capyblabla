@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback, useEffect } from 'react';
 
 // FIX: Add missing Web Speech API type definitions to resolve TypeScript errors.
@@ -58,19 +57,31 @@ export const useSpeechRecognition = (lang: string) => {
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const isStoppingRef = useRef(false); // Track if we're in the process of stopping
 
   const stopListening = useCallback(() => {
+    if (isStoppingRef.current) return; // Prevent multiple stop calls
+    isStoppingRef.current = true;
+
     if (recognitionRef.current) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch (err) {
+        console.warn('Error stopping recognition:', err);
+      }
       recognitionRef.current = null;
     }
     setIsListening(false);
+
+    // Reset the stopping flag after a short delay
+    setTimeout(() => {
+      isStoppingRef.current = false;
+    }, 100);
   }, []);
 
   const startListening = useCallback(() => {
-    if (isListening) {
-      stopListening();
-      return;
+    if (isListening || isStoppingRef.current) {
+      return; // Don't start if already listening or in process of stopping
     }
 
     if (!SpeechRecognition) {
@@ -80,35 +91,48 @@ export const useSpeechRecognition = (lang: string) => {
 
     // Force cleanup of any previous instance to prevent bugs.
     if (recognitionRef.current) {
-      recognitionRef.current.abort();
+      try {
+        recognitionRef.current.abort();
+      } catch (err) {
+        console.warn('Error aborting previous recognition:', err);
+      }
+      recognitionRef.current = null;
     }
-    
+
     setTranscript('');
     setError(null);
-    
+
     try {
       const recognition = new SpeechRecognition();
       recognitionRef.current = recognition;
 
-      // Setting continuous to false is more reliable on mobile to prevent duplication bugs.
-      // The browser will automatically stop recognition after a pause in speech.
+      // Mobile-optimized settings to prevent duplication
       recognition.continuous = false;
-      recognition.interimResults = true;
+      recognition.interimResults = false;
       recognition.lang = lang;
-  
+
       recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let finalTranscript = '';
-        for (let i = 0; i < event.results.length; i++) {
-            finalTranscript += event.results[i][0].transcript;
+        // Only process if we're still actively listening
+        if (!recognitionRef.current || isStoppingRef.current) {
+          return;
         }
-        setTranscript(finalTranscript);
+
+        // Get only the final result from the last result index
+        const lastResultIndex = event.results.length - 1;
+        if (lastResultIndex >= 0 && event.results[lastResultIndex].isFinal) {
+          const finalTranscript = event.results[lastResultIndex][0].transcript;
+          setTranscript(finalTranscript.trim());
+        }
       };
-  
+
       recognition.onend = () => {
-        setIsListening(false);
-        // Do not nullify the ref here, let stopListening handle it
+        // Only update state if we haven't manually stopped
+        if (!isStoppingRef.current) {
+          setIsListening(false);
+          recognitionRef.current = null;
+        }
       };
-      
+
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         let errorMessage = `An unknown error occurred: ${event.error}.`;
         if (event.message) {
@@ -123,7 +147,7 @@ export const useSpeechRecognition = (lang: string) => {
         } else if (event.error === 'audio-capture') {
           errorMessage = "Failed to capture audio. Please ensure your microphone is connected and not in use by another application.";
         }
-        
+
         setError(errorMessage);
         stopListening();
       };
@@ -141,12 +165,17 @@ export const useSpeechRecognition = (lang: string) => {
   const clearTranscript = useCallback(() => {
     setTranscript('');
   }, []);
-  
+
   // Cleanup on component unmount
   useEffect(() => {
     return () => {
+      isStoppingRef.current = true;
       if (recognitionRef.current) {
-        recognitionRef.current.abort();
+        try {
+          recognitionRef.current.abort();
+        } catch (err) {
+          console.warn('Cleanup error:', err);
+        }
       }
     };
   }, []);
