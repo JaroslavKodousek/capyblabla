@@ -58,10 +58,13 @@ export const useSpeechRecognition = (lang: string) => {
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const isStoppingRef = useRef(false); // Track if we're in the process of stopping
+  const shouldRestartRef = useRef(false); // Track if we should restart after onend
+  const finalTranscriptRef = useRef(''); // Store accumulated final transcript
 
   const stopListening = useCallback(() => {
     if (isStoppingRef.current) return; // Prevent multiple stop calls
     isStoppingRef.current = true;
+    shouldRestartRef.current = false; // Don't restart when manually stopping
 
     if (recognitionRef.current) {
       try {
@@ -69,7 +72,6 @@ export const useSpeechRecognition = (lang: string) => {
       } catch (err) {
         console.warn('Error stopping recognition:', err);
       }
-      recognitionRef.current = null;
     }
     setIsListening(false);
 
@@ -99,17 +101,21 @@ export const useSpeechRecognition = (lang: string) => {
       recognitionRef.current = null;
     }
 
-    setTranscript('');
+    // Only clear transcript and final transcript when manually starting (not restarting)
+    if (!shouldRestartRef.current) {
+      setTranscript('');
+      finalTranscriptRef.current = '';
+    }
     setError(null);
+    shouldRestartRef.current = true; // Enable auto-restart
 
     try {
       const recognition = new SpeechRecognition();
       recognitionRef.current = recognition;
 
-      // Enable continuous recording until the user clicks stop.
-      // Interim results provide a better UX by showing the transcript in real-time.
-      recognition.continuous = true;
-      recognition.interimResults = true;
+      // Continuous recording settings
+      recognition.continuous = true; // Enable continuous recording
+      recognition.interimResults = true; // Show interim results for better UX
       recognition.lang = lang;
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -118,17 +124,53 @@ export const useSpeechRecognition = (lang: string) => {
           return;
         }
 
-        // Combine all results (both final and interim) to form the full transcript.
-        const fullTranscript = Array.from(event.results)
-            .map(result => result[0].transcript)
-            .join('');
+        let interimTranscript = '';
+        let finalTranscript = finalTranscriptRef.current;
 
-        setTranscript(fullTranscript);
+        // Process all results
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          const transcript = result[0].transcript;
+
+          if (result.isFinal) {
+            finalTranscript += transcript + ' ';
+            finalTranscriptRef.current = finalTranscript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+
+        // Update the displayed transcript (final + interim)
+        const displayTranscript = (finalTranscript + interimTranscript).trim();
+        setTranscript(displayTranscript);
       };
 
       recognition.onend = () => {
-        // Only update state if we haven't manually stopped
-        if (!isStoppingRef.current) {
+        // Auto-restart recognition if it wasn't manually stopped and we should continue
+        if (shouldRestartRef.current && !isStoppingRef.current) {
+          setTimeout(() => {
+            if (shouldRestartRef.current && !isStoppingRef.current) {
+              try {
+                const newRecognition = new SpeechRecognition();
+                recognitionRef.current = newRecognition;
+
+                // Apply same settings
+                newRecognition.continuous = true;
+                newRecognition.interimResults = true;
+                newRecognition.lang = lang;
+                newRecognition.onresult = recognition.onresult;
+                newRecognition.onend = recognition.onend;
+                newRecognition.onerror = recognition.onerror;
+
+                newRecognition.start();
+              } catch (err) {
+                console.error("Failed to restart recognition:", err);
+                setIsListening(false);
+                shouldRestartRef.current = false;
+              }
+            }
+          }, 100); // Small delay before restart
+        } else {
           setIsListening(false);
           recognitionRef.current = null;
         }
@@ -141,20 +183,22 @@ export const useSpeechRecognition = (lang: string) => {
         }
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           errorMessage = "Microphone permission was denied. Please allow microphone access in your browser's settings and refresh the page.";
+          shouldRestartRef.current = false; // Don't restart on permission errors
         } else if (event.error === 'no-speech') {
-          // In continuous mode, 'no-speech' can happen between phrases, so we can often ignore it.
-          // However, if it happens right at the start, it's a real error.
-          // For simplicity here, we'll log it but not show a disruptive error.
-          console.warn("Speech recognition: no speech detected.");
-          return; // Don't stop listening on this error in continuous mode.
+          // Don't show error for no-speech, just continue listening
+          return;
         } else if (event.error === 'network') {
           errorMessage = "A network error occurred with the speech recognition service. Please check your internet connection.";
         } else if (event.error === 'audio-capture') {
           errorMessage = "Failed to capture audio. Please ensure your microphone is connected and not in use by another application.";
+          shouldRestartRef.current = false; // Don't restart on audio capture errors
         }
 
-        setError(errorMessage);
-        stopListening();
+        // Only stop listening for critical errors
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed' || event.error === 'audio-capture') {
+          setError(errorMessage);
+          stopListening();
+        }
       };
 
       recognition.start();
@@ -169,12 +213,14 @@ export const useSpeechRecognition = (lang: string) => {
 
   const clearTranscript = useCallback(() => {
     setTranscript('');
+    finalTranscriptRef.current = '';
   }, []);
 
   // Cleanup on component unmount
   useEffect(() => {
     return () => {
       isStoppingRef.current = true;
+      shouldRestartRef.current = false;
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort();
