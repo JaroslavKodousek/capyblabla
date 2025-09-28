@@ -3,11 +3,9 @@ import { Language, Difficulty, ConversationPartner } from './types';
 
 export const LANGUAGES: Language[] = [
   { code: 'en-US', name: 'English (US)', flag: '🇺🇸' },
-  { code: 'es-ES', name: 'Spanish', flag: '🇪🇸' },
-  { code: 'fr-FR', name: 'French', flag: '🇫🇷' },
   { code: 'de-DE', name: 'German', flag: '🇩🇪' },
-  { code: 'it-IT', name: 'Italian', flag: '🇮🇹' },
-  { code: 'ja-JP', name: 'Japanese', flag: '🇯🇵' },
+  { code: 'cs-CZ', name: 'Czech', flag: '🇨🇿' },
+  { code: 'pl-PL', name: 'Polish', flag: '🇵🇱' },
 ];
 
 export const DIFFICULTIES: Difficulty[] = [

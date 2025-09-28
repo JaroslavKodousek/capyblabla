@@ -52,43 +52,16 @@ declare global {
 
 const SpeechRecognition = typeof window !== 'undefined' ? window.SpeechRecognition || window.webkitSpeechRecognition : null;
 
-interface UseSpeechRecognitionOptions {
-  silenceTimeoutMs?: number; // Time in milliseconds to wait before stopping due to silence
-}
-
-export const useSpeechRecognition = (lang: string, options: UseSpeechRecognitionOptions = {}) => {
-  const { silenceTimeoutMs = 5000 } = options; // Default 5 seconds
-
+export const useSpeechRecognition = (lang: string) => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const isStoppingRef = useRef(false); // Track if we're in the process of stopping
-  const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSpeechTimeRef = useRef<number>(0);
-
-  const clearSilenceTimeout = useCallback(() => {
-    if (silenceTimeoutRef.current) {
-      clearTimeout(silenceTimeoutRef.current);
-      silenceTimeoutRef.current = null;
-    }
-  }, []);
-
-  const setSilenceTimeout = useCallback(() => {
-    clearSilenceTimeout();
-    silenceTimeoutRef.current = setTimeout(() => {
-      if (isListening && recognitionRef.current) {
-        console.log(`Stopping recognition due to ${silenceTimeoutMs}ms of silence`);
-        stopListening();
-      }
-    }, silenceTimeoutMs);
-  }, [silenceTimeoutMs, isListening]);
 
   const stopListening = useCallback(() => {
     if (isStoppingRef.current) return; // Prevent multiple stop calls
     isStoppingRef.current = true;
-
-    clearSilenceTimeout();
 
     if (recognitionRef.current) {
       try {
@@ -104,7 +77,7 @@ export const useSpeechRecognition = (lang: string, options: UseSpeechRecognition
     setTimeout(() => {
       isStoppingRef.current = false;
     }, 100);
-  }, [clearSilenceTimeout]);
+  }, []);
 
   const startListening = useCallback(() => {
     if (isListening || isStoppingRef.current) {
@@ -126,18 +99,16 @@ export const useSpeechRecognition = (lang: string, options: UseSpeechRecognition
       recognitionRef.current = null;
     }
 
-    clearSilenceTimeout();
     setTranscript('');
     setError(null);
-    lastSpeechTimeRef.current = Date.now();
 
     try {
       const recognition = new SpeechRecognition();
       recognitionRef.current = recognition;
 
-      // Enable continuous mode and interim results for better silence detection
-      recognition.continuous = true;
-      recognition.interimResults = true;
+      // Mobile-optimized settings to prevent duplication
+      recognition.continuous = false;
+      recognition.interimResults = false;
       recognition.lang = lang;
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -146,38 +117,15 @@ export const useSpeechRecognition = (lang: string, options: UseSpeechRecognition
           return;
         }
 
-        let finalTranscript = '';
-        let interimTranscript = '';
-
-        // Process all results
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          const transcript = result[0].transcript;
-
-          if (result.isFinal) {
-            finalTranscript += transcript;
-          } else {
-            interimTranscript += transcript;
-          }
-        }
-
-        // Update transcript with final results
-        if (finalTranscript) {
-          setTranscript(prev => (prev + finalTranscript).trim());
-          lastSpeechTimeRef.current = Date.now();
-          // Reset silence timeout when we get speech
-          setSilenceTimeout();
-        }
-
-        // If we have any speech (final or interim), reset the silence timer
-        if (finalTranscript || interimTranscript.trim()) {
-          lastSpeechTimeRef.current = Date.now();
-          setSilenceTimeout();
+        // Get only the final result from the last result index
+        const lastResultIndex = event.results.length - 1;
+        if (lastResultIndex >= 0 && event.results[lastResultIndex].isFinal) {
+          const finalTranscript = event.results[lastResultIndex][0].transcript;
+          setTranscript(finalTranscript.trim());
         }
       };
 
       recognition.onend = () => {
-        clearSilenceTimeout();
         // Only update state if we haven't manually stopped
         if (!isStoppingRef.current) {
           setIsListening(false);
@@ -186,8 +134,6 @@ export const useSpeechRecognition = (lang: string, options: UseSpeechRecognition
       };
 
       recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        clearSilenceTimeout();
-
         let errorMessage = `An unknown error occurred: ${event.error}.`;
         if (event.message) {
             errorMessage += ` Message: ${event.message}`;
@@ -209,15 +155,12 @@ export const useSpeechRecognition = (lang: string, options: UseSpeechRecognition
       recognition.start();
       setIsListening(true);
 
-      // Set initial silence timeout
-      setSilenceTimeout();
-
     } catch (err) {
       console.error("Speech Recognition initialization failed:", err);
       setError("Failed to initialize speech recognition. This browser may not be fully compatible.");
       stopListening();
     }
-  }, [lang, isListening, stopListening, setSilenceTimeout]);
+  }, [lang, isListening, stopListening]);
 
   const clearTranscript = useCallback(() => {
     setTranscript('');
@@ -227,7 +170,6 @@ export const useSpeechRecognition = (lang: string, options: UseSpeechRecognition
   useEffect(() => {
     return () => {
       isStoppingRef.current = true;
-      clearSilenceTimeout();
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort();
@@ -236,15 +178,7 @@ export const useSpeechRecognition = (lang: string, options: UseSpeechRecognition
         }
       }
     };
-  }, [clearSilenceTimeout]);
+  }, []);
 
-  return { 
-    isListening, 
-    transcript, 
-    error, 
-    startListening, 
-    stopListening, 
-    hasRecognitionSupport: !!SpeechRecognition, 
-    clearTranscript 
-  };
+  return { isListening, transcript, error, startListening, stopListening, hasRecognitionSupport: !!SpeechRecognition, clearTranscript };
 };
