@@ -58,13 +58,10 @@ export const useSpeechRecognition = (lang: string) => {
   const [error, setError] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const isStoppingRef = useRef(false); // Track if we're in the process of stopping
-  const shouldRestartRef = useRef(false); // Track if we should restart after onend
-  const finalTranscriptRef = useRef(''); // Store accumulated final transcript
 
   const stopListening = useCallback(() => {
     if (isStoppingRef.current) return; // Prevent multiple stop calls
     isStoppingRef.current = true;
-    shouldRestartRef.current = false; // Don't restart when manually stopping
 
     if (recognitionRef.current) {
       try {
@@ -72,6 +69,7 @@ export const useSpeechRecognition = (lang: string) => {
       } catch (err) {
         console.warn('Error stopping recognition:', err);
       }
+      recognitionRef.current = null;
     }
     setIsListening(false);
 
@@ -101,21 +99,16 @@ export const useSpeechRecognition = (lang: string) => {
       recognitionRef.current = null;
     }
 
-    // Only clear transcript and final transcript when manually starting (not restarting)
-    if (!shouldRestartRef.current) {
-      setTranscript('');
-      finalTranscriptRef.current = '';
-    }
+    setTranscript('');
     setError(null);
-    shouldRestartRef.current = true; // Enable auto-restart
 
     try {
       const recognition = new SpeechRecognition();
       recognitionRef.current = recognition;
 
-      // Continuous recording settings
-      recognition.continuous = true; // Enable continuous recording
-      recognition.interimResults = true; // Show interim results for better UX
+      // Mobile-optimized settings to prevent duplication
+      recognition.continuous = false;
+      recognition.interimResults = false;
       recognition.lang = lang;
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -124,53 +117,17 @@ export const useSpeechRecognition = (lang: string) => {
           return;
         }
 
-        let interimTranscript = '';
-        let finalTranscript = finalTranscriptRef.current;
-
-        // Process all results
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          const transcript = result[0].transcript;
-
-          if (result.isFinal) {
-            finalTranscript += transcript + ' ';
-            finalTranscriptRef.current = finalTranscript;
-          } else {
-            interimTranscript += transcript;
-          }
+        // Get only the final result from the last result index
+        const lastResultIndex = event.results.length - 1;
+        if (lastResultIndex >= 0 && event.results[lastResultIndex].isFinal) {
+          const finalTranscript = event.results[lastResultIndex][0].transcript;
+          setTranscript(finalTranscript.trim());
         }
-
-        // Update the displayed transcript (final + interim)
-        const displayTranscript = (finalTranscript + interimTranscript).trim();
-        setTranscript(displayTranscript);
       };
 
       recognition.onend = () => {
-        // Auto-restart recognition if it wasn't manually stopped and we should continue
-        if (shouldRestartRef.current && !isStoppingRef.current) {
-          setTimeout(() => {
-            if (shouldRestartRef.current && !isStoppingRef.current) {
-              try {
-                const newRecognition = new SpeechRecognition();
-                recognitionRef.current = newRecognition;
-
-                // Apply same settings
-                newRecognition.continuous = true;
-                newRecognition.interimResults = true;
-                newRecognition.lang = lang;
-                newRecognition.onresult = recognition.onresult;
-                newRecognition.onend = recognition.onend;
-                newRecognition.onerror = recognition.onerror;
-
-                newRecognition.start();
-              } catch (err) {
-                console.error("Failed to restart recognition:", err);
-                setIsListening(false);
-                shouldRestartRef.current = false;
-              }
-            }
-          }, 100); // Small delay before restart
-        } else {
+        // Only update state if we haven't manually stopped
+        if (!isStoppingRef.current) {
           setIsListening(false);
           recognitionRef.current = null;
         }
@@ -183,22 +140,16 @@ export const useSpeechRecognition = (lang: string) => {
         }
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           errorMessage = "Microphone permission was denied. Please allow microphone access in your browser's settings and refresh the page.";
-          shouldRestartRef.current = false; // Don't restart on permission errors
         } else if (event.error === 'no-speech') {
-          // Don't show error for no-speech, just continue listening
-          return;
+          errorMessage = "No speech was detected. Please check your microphone and try again.";
         } else if (event.error === 'network') {
           errorMessage = "A network error occurred with the speech recognition service. Please check your internet connection.";
         } else if (event.error === 'audio-capture') {
           errorMessage = "Failed to capture audio. Please ensure your microphone is connected and not in use by another application.";
-          shouldRestartRef.current = false; // Don't restart on audio capture errors
         }
 
-        // Only stop listening for critical errors
-        if (event.error === 'not-allowed' || event.error === 'service-not-allowed' || event.error === 'audio-capture') {
-          setError(errorMessage);
-          stopListening();
-        }
+        setError(errorMessage);
+        stopListening();
       };
 
       recognition.start();
@@ -213,14 +164,12 @@ export const useSpeechRecognition = (lang: string) => {
 
   const clearTranscript = useCallback(() => {
     setTranscript('');
-    finalTranscriptRef.current = '';
   }, []);
 
   // Cleanup on component unmount
   useEffect(() => {
     return () => {
       isStoppingRef.current = true;
-      shouldRestartRef.current = false;
       if (recognitionRef.current) {
         try {
           recognitionRef.current.abort();
