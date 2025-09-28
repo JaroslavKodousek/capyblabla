@@ -106,9 +106,10 @@ export const useSpeechRecognition = (lang: string) => {
       const recognition = new SpeechRecognition();
       recognitionRef.current = recognition;
 
-      // Mobile-optimized settings to prevent duplication
-      recognition.continuous = false;
-      recognition.interimResults = false;
+      // Enable continuous recording until the user clicks stop.
+      // Interim results provide a better UX by showing the transcript in real-time.
+      recognition.continuous = true;
+      recognition.interimResults = true;
       recognition.lang = lang;
 
       recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -117,12 +118,12 @@ export const useSpeechRecognition = (lang: string) => {
           return;
         }
 
-        // Get only the final result from the last result index
-        const lastResultIndex = event.results.length - 1;
-        if (lastResultIndex >= 0 && event.results[lastResultIndex].isFinal) {
-          const finalTranscript = event.results[lastResultIndex][0].transcript;
-          setTranscript(finalTranscript.trim());
-        }
+        // Combine all results (both final and interim) to form the full transcript.
+        const fullTranscript = Array.from(event.results)
+            .map(result => result[0].transcript)
+            .join('');
+
+        setTranscript(fullTranscript);
       };
 
       recognition.onend = () => {
@@ -141,7 +142,11 @@ export const useSpeechRecognition = (lang: string) => {
         if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
           errorMessage = "Microphone permission was denied. Please allow microphone access in your browser's settings and refresh the page.";
         } else if (event.error === 'no-speech') {
-          errorMessage = "No speech was detected. Please check your microphone and try again.";
+          // In continuous mode, 'no-speech' can happen between phrases, so we can often ignore it.
+          // However, if it happens right at the start, it's a real error.
+          // For simplicity here, we'll log it but not show a disruptive error.
+          console.warn("Speech recognition: no speech detected.");
+          return; // Don't stop listening on this error in continuous mode.
         } else if (event.error === 'network') {
           errorMessage = "A network error occurred with the speech recognition service. Please check your internet connection.";
         } else if (event.error === 'audio-capture') {
